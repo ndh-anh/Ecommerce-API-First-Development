@@ -43,22 +43,25 @@ const ChatWidget = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || chatMutation.isPending) return;
+  const sendMessage = async (text: string, confirm?: boolean) => {
+    if (!text.trim() || chatMutation.isPending) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: "user",
-      text: inputValue,
+      text: text,
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
 
     try {
+      const payload: any = { message: userMessage.text };
+      if (confirm !== undefined) {
+        payload.confirm = confirm;
+      }
+
       const response = await chatMutation.mutateAsync({
-        data: { message: userMessage.text },
+        data: payload,
       });
 
       const aiMessage: Message = {
@@ -77,6 +80,15 @@ const ChatWidget = () => {
       };
       setMessages((prev) => [...prev, errorMessage]);
     }
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+    
+    const textToSend = inputValue;
+    setInputValue("");
+    await sendMessage(textToSend);
   };
 
   if (!isInitialized) return null;
@@ -140,6 +152,22 @@ const ChatWidget = () => {
                     }`}
                   >
                     <p className="text-sm">{msg.text}</p>
+                    {msg.sender === "ai" && msg.text.toLowerCase().includes("vui lòng xác nhận") && (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => sendMessage("Xác nhận", true)}
+                          className="flex-1 bg-black text-white text-xs py-1.5 rounded hover:bg-gray-800 transition-colors"
+                        >
+                          Xác nhận
+                        </button>
+                        <button
+                          onClick={() => sendMessage("Từ chối", false)}
+                          className="flex-1 bg-gray-200 text-black text-xs py-1.5 rounded hover:bg-gray-300 transition-colors"
+                        >
+                          Từ chối
+                        </button>
+                      </div>
+                    )}
                     {(() => {
                       if (!msg.data) return null;
 
@@ -198,12 +226,20 @@ const ChatWidget = () => {
                                           }).format(product.price)
                                         : "Liên hệ"}
                                     </p>
-                                    <Link
-                                      href={`/product/${product.slug}`}
-                                      className="block w-full text-center bg-black text-white text-xs py-1.5 rounded hover:bg-gray-800 transition-colors"
-                                    >
-                                      Xem chi tiết
-                                    </Link>
+                                    <div className="flex gap-2">
+                                      <Link
+                                        href={`/product/${product.slug}`}
+                                        className="flex-1 text-center bg-gray-100 text-black text-xs py-1.5 rounded hover:bg-gray-200 transition-colors"
+                                      >
+                                        Chi tiết
+                                      </Link>
+                                      <button
+                                        onClick={() => sendMessage(`Tôi muốn đặt mua sản phẩm: ${product.productName}`)}
+                                        className="flex-1 text-center bg-black text-white text-xs py-1.5 rounded hover:bg-gray-800 transition-colors"
+                                      >
+                                        Đặt hàng
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               ))}
