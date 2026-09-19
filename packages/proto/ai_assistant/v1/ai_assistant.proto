@@ -10,10 +10,12 @@ message ChatRequest {
   string message = 1;
   string session_id = 2;
   string user_id = 3;
+  optional bool confirm = 4;
 }
 
 message ChatResponse {
   string message = 1;
   string data = 2;
   string session_id = 3;
+  string type = 4;
 }

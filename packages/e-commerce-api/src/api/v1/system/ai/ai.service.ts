@@ -23,12 +23,18 @@ export class AiService implements OnModuleInit {
       this.client.getService<AiChatServiceClient>('ChatService');
   }
 
-  async chat(message: string, sessionId?: string, userId?: string) {
+  async chat(
+    message: string,
+    sessionId?: string,
+    userId?: string,
+    confirm?: boolean,
+  ) {
     const response = await firstValueFrom(
       this.chatServiceClient.chat({
         message,
         sessionId: sessionId || '',
         userId: userId || '',
+        confirm: confirm,
       }),
     );
     return response;

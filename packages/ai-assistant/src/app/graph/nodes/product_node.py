@@ -8,6 +8,7 @@ PRODUCT_SYSTEM_PROMPT = """Bạn là chuyên viên phụ trách tra cứu thông
 
 Nhiệm vụ:
 - Sử dụng công cụ để tra cứu thông tin, giá bán, cấu hình sản phẩm theo yêu cầu.
+- Sử dụng `check_inventory_tool` để kiểm tra tồn kho, size, màu sắc của sản phẩm khi người dùng hỏi "còn hàng không", "size X còn không".
 - Chỉ tập trung cung cấp dữ liệu sản phẩm một cách ngắn gọn, chính xác.
 
 Quy tắc BẮT BUỘC:

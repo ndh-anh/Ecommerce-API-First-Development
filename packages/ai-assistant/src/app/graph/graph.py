@@ -15,6 +15,18 @@ from app.tools.cancel_order_tool import cancel_order_tool
 from app.tools.check_inventory_tool import check_inventory_tool
 from app.tools.get_policy import get_policy
 
+def route_order_tools(state: AgentState):
+    messages = state.get("messages", [])
+    if not messages:
+        return "__end__"
+    last_message = messages[-1]
+    if hasattr(last_message, "tool_calls") and len(last_message.tool_calls) > 0:
+        sensitive_names = ["place_order_tool", "cancel_order_tool"]
+        if any(tc["name"] in sensitive_names for tc in last_message.tool_calls):
+            return "sensitive_order_tools"
+        return "safe_order_tools"
+    return "supervisor"
+
 def create_agent_graph():
     builder = StateGraph(AgentState)
     
@@ -25,8 +37,12 @@ def create_agent_graph():
     builder.add_node("support", support_node)
     
     # Tool Node riêng biệt theo nghiệp vụ
-    builder.add_node("product_tools", ToolNode([get_products]))
-    builder.add_node("order_tools", ToolNode([check_inventory_tool, place_order_tool, check_order_tool, cancel_order_tool]))
+    builder.add_node("product_tools", ToolNode([get_products, check_inventory_tool]))
+    
+    # Tách order_tools thành 2 nhánh: an toàn và nhạy cảm
+    builder.add_node("safe_order_tools", ToolNode([check_inventory_tool, check_order_tool]))
+    builder.add_node("sensitive_order_tools", ToolNode([place_order_tool, cancel_order_tool]))
+    
     builder.add_node("support_tools", ToolNode([get_policy]))
     
     # 2. Luôn bắt đầu từ Supervisor
@@ -45,24 +61,36 @@ def create_agent_graph():
     )
     
     # 4 & 5. Vòng lặp Agent <-> Tool tương ứng
-    agents = [
-        ("product", "product_tools"),
-        ("order", "order_tools"),
-        ("support", "support_tools")
-    ]
+    # Product và Support vẫn dùng tools_condition bình thường
+    builder.add_conditional_edges(
+        "product",
+        tools_condition,
+        {"tools": "product_tools", "__end__": "supervisor"}
+    )
+    builder.add_edge("product_tools", "product")
     
-    for agent_node, tool_node in agents:
-        builder.add_conditional_edges(
-            agent_node,
-            tools_condition,
-            {
-                "tools": tool_node,
-                "__end__": "supervisor"  
-            }
-        )
-        builder.add_edge(tool_node, agent_node)
+    builder.add_conditional_edges(
+        "support",
+        tools_condition,
+        {"tools": "support_tools", "__end__": "supervisor"}
+    )
+    builder.add_edge("support_tools", "support")
+    
+    # Order sử dụng custom router để phân biệt tool
+    builder.add_conditional_edges(
+        "order",
+        route_order_tools,
+        {
+            "safe_order_tools": "safe_order_tools",
+            "sensitive_order_tools": "sensitive_order_tools",
+            "__end__": "supervisor",
+            "supervisor": "supervisor"
+        }
+    )
+    builder.add_edge("safe_order_tools", "order")
+    builder.add_edge("sensitive_order_tools", "order")
     
     checkpointer = MemorySaver()
-    return builder.compile(checkpointer=checkpointer)
+    return builder.compile(checkpointer=checkpointer, interrupt_before=["sensitive_order_tools"])
 
 agent_app = create_agent_graph()

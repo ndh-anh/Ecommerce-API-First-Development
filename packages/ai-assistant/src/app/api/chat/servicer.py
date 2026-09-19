@@ -18,15 +18,17 @@ class ChatServicer(pb2_grpc.ChatServiceServicer):
 
         session_id = request.session_id or "default_session"
         user_id = request.user_id or "default_user"
+        confirm = request.confirm if request.HasField("confirm") else None
 
         try:
             # Process query
-            ai_result = self.chat_service.process_query(request.message, session_id)
+            ai_result = self.chat_service.process_query(request.message, session_id, user_id, confirm)
 
             return pb2.ChatResponse(
                 message=ai_result.get("message", ""),
                 data=json.dumps(ai_result.get("data", {})) if ai_result.get("data") else "",
-                session_id=session_id
+                session_id=session_id,
+                type=ai_result.get("type", "")
             )
 
         except Exception as e:

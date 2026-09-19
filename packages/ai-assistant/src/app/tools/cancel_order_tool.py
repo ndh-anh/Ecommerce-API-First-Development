@@ -2,6 +2,8 @@ from langchain_core.tools import tool
 from app.clients.order_client import order_client_manager
 from app.buf.generated.order.v1 import order_pb2
 
+import json
+
 @tool
 def cancel_order_tool(order_id: str, reason: str = "User requested cancellation") -> str:
     """
@@ -15,9 +17,14 @@ def cancel_order_tool(order_id: str, reason: str = "User requested cancellation"
     try:
         request = order_pb2.CancelOrderRequest(order_id=order_id, reason=reason)
         response = client.CancelOrder(request)
-        if response.success:
-            return f"Đã hủy đơn hàng {order_id} thành công. Lời nhắn: {response.message}"
-        else:
-            return f"Không thể hủy đơn hàng {order_id}. Lời nhắn: {response.message}"
+        return json.dumps({
+            "order_id": order_id,
+            "success": response.success,
+            "message": response.message
+        }, ensure_ascii=False)
     except Exception as e:
-        return f"Đã xảy ra lỗi khi hủy đơn hàng: {str(e)}"
+        return json.dumps({
+            "order_id": order_id,
+            "success": False,
+            "message": f"Đã xảy ra lỗi khi hủy đơn hàng: {str(e)}"
+        }, ensure_ascii=False)

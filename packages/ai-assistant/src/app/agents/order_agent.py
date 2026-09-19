@@ -14,7 +14,7 @@ prompt = ChatPromptTemplate.from_messages(
             "Sử dụng các tool được cung cấp để thực hiện quy trình sau (TUYỆT ĐỐI TUÂN THỦ TỪNG BƯỚC):\n"
             "1. Khi người dùng muốn đặt một sản phẩm, HÃY DÙNG `check_inventory_tool` để kiểm tra tồn kho và các biến thể (variants).\n"
             "2. NẾU sản phẩm có biến thể hoặc người dùng chưa chọn số lượng, BẮT BUỘC HỎI người dùng để chọn phân loại và số lượng.\n"
-            "3. Khi đã chốt số lượng và biến thể, BẮT BUỘC HỎI người dùng tên (để làm customer_id), địa chỉ giao hàng và số điện thoại liên hệ (nếu họ chưa cung cấp).\n"
+            "3. Khi đã chốt số lượng và biến thể, BẮT BUỘC HỎI người dùng tên người nhận (để làm customer_name), địa chỉ giao hàng và số điện thoại liên hệ (nếu họ chưa cung cấp).\n"
             "4. KHÔNG ĐƯỢC tự bịa ra thông tin. Chỉ gọi `place_order_tool` khi đã CÓ ĐẦY ĐỦ các thông tin trên.\n"
             "5. Bạn cũng có thể dùng `check_order_tool` hoặc `cancel_order_tool` nếu người dùng yêu cầu tương ứng."
         ),

@@ -2,6 +2,8 @@ from langchain_core.tools import tool
 from app.clients.order_client import order_client_manager
 from app.buf.generated.order.v1 import order_pb2
 
+import json
+
 @tool
 def check_order_tool(order_id: str) -> str:
     """
@@ -15,11 +17,21 @@ def check_order_tool(order_id: str) -> str:
         request = order_pb2.GetOrderRequest(order_id=order_id)
         response = client.GetOrder(request)
         if response.status == 'NOT_FOUND':
-            return f"Không tìm thấy đơn hàng {order_id}."
+            return json.dumps({
+                "status": "NOT_FOUND",
+                "message": f"Không tìm thấy đơn hàng {order_id}."
+            }, ensure_ascii=False)
         
-        items_str = ", ".join([f"{item.quantity} x {item.product_id}" for item in response.items])
-        return (f"Đơn hàng {order_id} (Khách hàng: {response.customer_id}): "
-                f"Trạng thái {response.status}, Tổng tiền {response.total_amount}. "
-                f"Sản phẩm: {items_str}")
+        items = [{"product_id": item.product_id, "quantity": item.quantity, "price": item.price} for item in response.items]
+        return json.dumps({
+            "order_id": order_id,
+            "customer_id": response.customer_id,
+            "status": response.status,
+            "total_amount": response.total_amount,
+            "items": items
+        }, ensure_ascii=False)
     except Exception as e:
-        return f"Đã xảy ra lỗi khi kiểm tra đơn hàng: {str(e)}"
+        return json.dumps({
+            "status": "ERROR",
+            "message": f"Đã xảy ra lỗi khi kiểm tra đơn hàng: {str(e)}"
+        }, ensure_ascii=False)

@@ -153,6 +153,10 @@
           "sessionId": {
             "type": "string",
             "description": "The optional session ID for continuity"
+          },
+          "confirm": {
+            "type": "boolean",
+            "description": "The optional boolean to confirm HIL interruption"
           }
         }
       },
@@ -174,6 +178,10 @@
           "sessionId": {
             "type": "string",
             "description": "The session ID used for this conversation"
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of data returned (e.g. tool name) for casting"
           }
         }
       },

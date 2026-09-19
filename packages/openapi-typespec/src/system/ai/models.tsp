@@ -11,6 +11,9 @@ model ChatRequest {
 
   @doc("The optional session ID for continuity")
   sessionId?: string;
+
+  @doc("The optional boolean to confirm HIL interruption")
+  confirm?: boolean;
 }
 
 model ChatResponse {
@@ -22,6 +25,9 @@ model ChatResponse {
 
   @doc("The session ID used for this conversation")
   sessionId: string;
+
+  @doc("The type of data returned (e.g. tool name) for casting")
+  type?: string;
 }
 
 model Chat200Response {
