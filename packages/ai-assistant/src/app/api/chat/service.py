@@ -60,7 +60,28 @@ class ChatService:
             }
         
         messages = result.get("messages", [])
-        final_message = messages[-1].content
+        
+        if messages and messages[-1].type == "human":
+            from langchain_openai import ChatOpenAI
+            from langchain_core.messages import SystemMessage
+            from app.config import settings
+            
+            fallback_llm = ChatOpenAI(
+                model=settings.DEFAULT_MODEL,
+                temperature=0.7,
+                api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
+                base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+            )
+            fallback_response = fallback_llm.invoke([
+                SystemMessage(content="Bạn là trợ lý ảo hỗ trợ khách hàng. Hãy trả lời câu hỏi của khách hàng một cách thân thiện và tự nhiên. Nếu khách hỏi về sản phẩm, hãy hỏi lại chi tiết để tra cứu."),
+                messages[-1]
+            ])
+            self.agent.update_state(config, {"messages": [fallback_response]})
+            final_message = fallback_response.content
+            # Re-fetch messages since we updated state
+            messages = self.agent.get_state(config).values.get("messages", [])
+        else:
+            final_message = messages[-1].content
         data = None
         data_type = None
         
@@ -79,6 +100,40 @@ class ChatService:
                     import json
                     try:
                         data = json.loads(messages[i].content)
+                        if data_type == "get_products" and isinstance(data, dict) and "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
+                            from langchain_openai import ChatOpenAI
+                            from app.config import settings
+                            import re
+                            
+                            filter_llm = ChatOpenAI(
+                                model=settings.DEFAULT_MODEL,
+                                temperature=0,
+                                api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
+                                base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+                            )
+                            user_msg = messages[last_human_idx].content
+                            ai_msg = messages[-1].content if messages[-1].type == "ai" else ""
+                            prompt = f"""Khách hàng yêu cầu: "{user_msg}"
+AI phản hồi: "{ai_msg}"
+
+Dưới đây là danh sách các sản phẩm thô từ CSDL:
+{json.dumps([{ 'id': p['productId'], 'name': p['productName'] } for p in data["data"]], ensure_ascii=False)}
+
+Dựa vào yêu cầu của khách và câu trả lời của AI, hãy chọn ra các 'id' sản phẩm THỰC SỰ LÀ CÂU TRẢ LỜI ĐÚNG và BỎ QUA các sản phẩm không liên quan (ví dụ tìm "sách về nhà" thì bỏ qua "sách nhân gian đáng giá").
+Trả về ĐÚNG 1 mảng JSON chứa các ID hợp lệ, ví dụ: ["id1", "id2"]. KHÔNG xuất thêm bất kỳ văn bản nào khác. Nếu không có cái nào phù hợp, trả về []."""
+                            try:
+                                filter_resp = filter_llm.invoke(prompt).content.strip()
+                                match = re.search(r'\[.*\]', filter_resp, re.DOTALL)
+                                if match:
+                                    valid_ids = json.loads(match.group(0))
+                                    if isinstance(valid_ids, list):
+                                        filtered = [p for p in data["data"] if p["productId"] in valid_ids]
+                                        if len(filtered) > 0:
+                                            data["data"] = filtered
+                                        else:
+                                            data = None
+                            except Exception:
+                                pass
                     except Exception:
                         data = messages[i].content
                     break

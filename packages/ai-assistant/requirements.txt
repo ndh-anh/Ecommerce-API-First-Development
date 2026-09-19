@@ -45,4 +45,4 @@ websockets==16.1.1
 xxhash==4.0.1
 zstandard==0.25.0
 grpcio==1.83.1
-protobuf==7.36.1
+protobuf==7.36.2

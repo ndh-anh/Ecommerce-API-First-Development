@@ -3,8 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      new URL("https://i.pinimg.com/**"),
-      new URL("https://*.cloudfront.net/**"),
+      { protocol: "https", hostname: "i.pinimg.com" },
+      { protocol: "https", hostname: "*.cloudfront.net" },
+      { protocol: "https", hostname: "salt.tikicdn.com" },
+      { protocol: "https", hostname: "placehold.co" },
     ],
   },
   reactStrictMode: true,
