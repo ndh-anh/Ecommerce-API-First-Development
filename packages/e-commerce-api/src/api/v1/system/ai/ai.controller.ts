@@ -50,7 +50,7 @@ export class AiController implements BaseAiControllerInterface {
             id: m.id,
             sender: m.sender,
             text: m.text,
-            data: m.data ? JSON.parse(m.data) : null,
+            data: m.data ? JSON.parse(m.data as string) : null,
           }))
         : [],
     };
