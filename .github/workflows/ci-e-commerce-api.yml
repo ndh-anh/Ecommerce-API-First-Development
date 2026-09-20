@@ -71,6 +71,9 @@ jobs:
       - name: Generate Base Controllers
         run: pnpm run generate:controllers
 
+      - name: Generate Protobuf
+        run: pnpm --filter proto generate
+
       - name: Generate Prisma Client
         run: npx prisma generate
         # dummy env vars for prisma generate
