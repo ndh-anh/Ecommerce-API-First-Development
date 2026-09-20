@@ -1,5 +1,12 @@
+import Orders from "@/features/main/orders/Orders";
+import SuspenseWrapper from "@/components/feedback/SuspenseWrapper/SuspenseWrapper";
+
 const OrderPage = () => {
-  return <div>OrderPage</div>;
+  return (
+    <SuspenseWrapper>
+      <Orders />
+    </SuspenseWrapper>
+  );
 };
 
 export default OrderPage;

@@ -3,7 +3,7 @@ from app.tools.check_order_tool import check_order_tool
 from app.tools.cancel_order_tool import cancel_order_tool
 from app.tools.check_inventory_tool import check_inventory_tool
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from app.utils.llm_utils import get_llm_with_fallbacks
 from app.config import settings
 
 prompt = ChatPromptTemplate.from_messages(
@@ -22,13 +22,9 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-llm = ChatOpenAI(
-    model=settings.DEFAULT_MODEL,
-    temperature=settings.TEMPERATURE,
-    api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
-    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-)
-
 tools = [check_inventory_tool, place_order_tool, check_order_tool, cancel_order_tool]
 
-order_agent = llm.bind_tools(tools)
+order_agent = get_llm_with_fallbacks(
+    api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
+    tools=tools
+)

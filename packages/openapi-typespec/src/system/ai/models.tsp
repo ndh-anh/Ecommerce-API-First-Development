@@ -34,3 +34,27 @@ model Chat200Response {
   @statusCode _: 200;
   @body body: ChatResponse;
 }
+
+model ChatMessage {
+  @doc("Message ID")
+  id: string;
+
+  @doc("Sender type")
+  sender: string;
+
+  @doc("Text content")
+  text: string;
+
+  @doc("Optional data payload")
+  data?: unknown;
+}
+
+model ChatHistoryResponse {
+  @doc("List of messages in the session")
+  messages: ChatMessage[];
+}
+
+model ChatHistory200Response {
+  @statusCode _: 200;
+  @body body: ChatHistoryResponse;
+}

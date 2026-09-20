@@ -1,21 +1,7 @@
-// ─── Imports ──────────────────────────────────────────────────────────────────
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersService } from './orders.service';
-import { OrdersRepository } from './orders.repository';
-
-jest.mock('@/common/services/prisma.service', () => ({
-  PrismaService: jest.fn().mockImplementation(() => ({
-    orders: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      delete: jest.fn(),
-    },
-  })),
-}));
-
-jest.mock('./orders.repository');
+import { of } from 'rxjs';
+import { NotFoundException } from '@nestjs/common';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -38,19 +24,38 @@ const mockOrdersResponse = {
   totalPages: 1,
 };
 
+// ─── Mocks ────────────────────────────────────────────────────────────────────
+
+const mockOrderServiceClient = {
+  createOrder: jest.fn(),
+  getOrders: jest.fn(),
+  getOrderById: jest.fn(),
+  deleteOrder: jest.fn(),
+};
+
+const mockClientGrpc = {
+  getService: jest.fn().mockReturnValue(mockOrderServiceClient),
+};
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('OrdersService', () => {
   let service: OrdersService;
-  let repository: jest.Mocked<OrdersRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OrdersService, OrdersRepository],
+      providers: [
+        OrdersService,
+        {
+          provide: 'ORDER_SERVICE',
+          useValue: mockClientGrpc,
+        },
+      ],
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-    repository = module.get(OrdersRepository);
+    // Explicitly call onModuleInit to initialize the gRPC client
+    service.onModuleInit();
 
     jest.clearAllMocks();
   });
@@ -58,41 +63,71 @@ describe('OrdersService', () => {
   // ─── deleteOrder ─────────────────────────────────────────────────────────────
 
   describe('deleteOrder', () => {
-    it('should call repository.deleteOrder with correct params', async () => {
-      repository.deleteOrder.mockResolvedValue(undefined);
+    it('should call gRPC deleteOrder with correct params', async () => {
+      mockOrderServiceClient.deleteOrder.mockReturnValue(of({ success: true }));
 
       await service.deleteOrder({ orderId });
 
-      expect(repository.deleteOrder).toHaveBeenCalledTimes(1);
-      expect(repository.deleteOrder).toHaveBeenCalledWith(orderId);
+      expect(mockOrderServiceClient.deleteOrder).toHaveBeenCalledTimes(1);
+      expect(mockOrderServiceClient.deleteOrder).toHaveBeenCalledWith({
+        order_id: orderId,
+      });
+    });
+
+    it('should throw NotFoundException if gRPC returns success: false', async () => {
+      mockOrderServiceClient.deleteOrder.mockReturnValue(
+        of({ success: false }),
+      );
+
+      await expect(service.deleteOrder({ orderId })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   // ─── getOrderById ────────────────────────────────────────────────────────────
 
   describe('getOrderById', () => {
-    it('should return an order from repository', async () => {
-      repository.getOrderById.mockResolvedValue(mockOrder);
+    it('should return an order from gRPC client', async () => {
+      mockOrderServiceClient.getOrderById.mockReturnValue(
+        of({ order: mockOrder }),
+      );
 
       const result = await service.getOrderById({ orderId });
 
-      expect(repository.getOrderById).toHaveBeenCalledTimes(1);
-      expect(repository.getOrderById).toHaveBeenCalledWith(orderId);
+      expect(mockOrderServiceClient.getOrderById).toHaveBeenCalledTimes(1);
+      expect(mockOrderServiceClient.getOrderById).toHaveBeenCalledWith({
+        order_id: orderId,
+      });
       expect(result).toEqual(mockOrder);
+    });
+
+    it('should throw NotFoundException if gRPC returns no order', async () => {
+      mockOrderServiceClient.getOrderById.mockReturnValue(of({ order: null }));
+
+      await expect(service.getOrderById({ orderId })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   // ─── getOrders ───────────────────────────────────────────────────────────────
 
   describe('getOrders', () => {
-    it('should return orders from repository', async () => {
-      repository.getOrders.mockResolvedValue(mockOrdersResponse);
+    it('should return orders from gRPC client', async () => {
+      mockOrderServiceClient.getOrders.mockReturnValue(of(mockOrdersResponse));
 
       const query = { page: 1, pageSize: 20, userId };
       const result = await service.getOrders(query);
 
-      expect(repository.getOrders).toHaveBeenCalledTimes(1);
-      expect(repository.getOrders).toHaveBeenCalledWith(query);
+      expect(mockOrderServiceClient.getOrders).toHaveBeenCalledTimes(1);
+      expect(mockOrderServiceClient.getOrders).toHaveBeenCalledWith({
+        user_id: query.userId,
+        status: undefined,
+        page: query.page,
+        page_size: query.pageSize,
+        order_by: undefined,
+      });
       expect(result).toEqual(mockOrdersResponse);
     });
   });
@@ -100,14 +135,16 @@ describe('OrdersService', () => {
   // ─── postOrder ───────────────────────────────────────────────────────────────
 
   describe('postOrder', () => {
-    it('should call repository.createOrder and return id', async () => {
-      repository.createOrder.mockResolvedValue(orderId);
+    it('should call gRPC createOrder and return id', async () => {
+      mockOrderServiceClient.createOrder.mockReturnValue(of({ orderId }));
 
       const body = { userId };
       const result = await service.postOrder(body);
 
-      expect(repository.createOrder).toHaveBeenCalledTimes(1);
-      expect(repository.createOrder).toHaveBeenCalledWith(body);
+      expect(mockOrderServiceClient.createOrder).toHaveBeenCalledTimes(1);
+      expect(mockOrderServiceClient.createOrder).toHaveBeenCalledWith({
+        user_id: userId,
+      });
       expect(result).toEqual({ orderId });
     });
   });

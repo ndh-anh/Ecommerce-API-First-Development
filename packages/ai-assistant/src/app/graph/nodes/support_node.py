@@ -10,7 +10,7 @@ def support_node(state: AgentState) -> dict:
     sys_message = SystemMessage(content=SUPPORT_SYSTEM_PROMPT)
            
     # Ghép system message vào đầu danh sách messages gửi cho LLM
-    response = support_agent.invoke([sys_message] + list(state["messages"]))
+    response = support_agent.invoke([sys_message] + list(state["messages"])[-10:])
        
     return {
         "messages": [response]

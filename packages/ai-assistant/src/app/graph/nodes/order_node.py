@@ -11,7 +11,7 @@ def order_node(state: AgentState) -> dict:
     sys_message = SystemMessage(content=ORDER_SYSTEM_PROMPT)
         
     # Ghép system message vào đầu danh sách messages gửi cho LLM
-    response = order_agent.invoke([sys_message] + list(state["messages"]))
+    response = order_agent.invoke([sys_message] + list(state["messages"])[-10:])
     
     return {
         "messages": [response]
