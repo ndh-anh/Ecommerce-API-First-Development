@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "e-commerce search engine",
   "scripts": {
-    "proto:generate": "protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/generated --ts_proto_opt=outputServices=grpc-js,env=node,esModuleInterop=true -I=./proto ./proto/*.proto",
+    "proto:generate": "pnpm --filter proto generate",
     "build": "tsc",
     "server": "tsx --env-file=.env src/server.ts",
     "client": "tsx src/client.ts"
