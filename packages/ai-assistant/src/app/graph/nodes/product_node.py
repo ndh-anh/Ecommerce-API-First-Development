@@ -22,7 +22,7 @@ def product_node(state: AgentState) -> dict:
     sys_message = SystemMessage(content=PRODUCT_SYSTEM_PROMPT)
     
     # Ghép system message vào đầu danh sách messages gửi cho LLM
-    response = product_agent.invoke([sys_message] + list(state["messages"]))
+    response = product_agent.invoke([sys_message] + list(state["messages"])[-10:])
     
     return {
         "messages": [response]

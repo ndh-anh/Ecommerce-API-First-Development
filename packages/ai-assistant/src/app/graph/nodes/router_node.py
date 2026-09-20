@@ -20,5 +20,5 @@ def router_node(state: AgentState) -> dict:
     sys_prompt = SystemMessage(
         content="Bạn là bộ định tuyến. Dựa vào nội dung trao đổi, hãy phân loại yêu cầu của khách hàng vào đúng 1 trong 3 agent: 'product', 'order', hoặc 'support'."
     )
-    decision = router_llm.invoke([sys_prompt] + list(state["messages"]))
+    decision = router_llm.invoke([sys_prompt] + list(state["messages"])[-10:])
     return {"next_node": decision.next_node}

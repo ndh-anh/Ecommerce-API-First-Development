@@ -108,7 +108,9 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           borderColor: "grey.100",
         }}
       >
-        <Typography variant="regularM">{msg.text}</Typography>
+        <Typography variant="regularM" sx={{ color: "inherit" }}>
+          {msg.text}
+        </Typography>
 
         {!isUser && msg.text.toLowerCase().includes("vui lòng xác nhận") && (
           <Box sx={{ display: "flex", gap: 1, mt: 1.5 }}>

@@ -30,5 +30,5 @@ def supervisor_node(state: AgentState) -> dict:
             "- 'FINISH': Khi TẤT CẢ các ý của khách đã được xử lý xong, HOẶC NẾU tin nhắn cuối cùng là của hệ thống (AI) đang đặt câu hỏi/yêu cầu khách hàng cung cấp thêm thông tin. (BẮT BUỘC CHỌN FINISH ĐỂ CHỜ KHÁCH TRẢ LỜI, TRÁNH VÒNG LẶP VÔ HẠN)."
         )
     )
-    decision = supervisor_llm.invoke([sys_prompt] + list(state["messages"]))
+    decision = supervisor_llm.invoke([sys_prompt] + list(state["messages"])[-10:])
     return {"next_node": decision.next_node}
