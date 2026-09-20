@@ -6,17 +6,18 @@ from langchain_openai import ChatOpenAI
 from app.config import settings
 from app.graph.states.state import AgentState
 
+from app.utils.llm_utils import get_llm_with_fallbacks
+
 class SupervisorDecision(BaseModel):
     next_node: Literal["product", "order", "support", "FINISH"] = Field(
         description="Chọn agent tiếp theo cần thực thi, hoặc 'FINISH' nếu đã hoàn thành toàn bộ yêu cầu của khách."
     )
 
-supervisor_llm = ChatOpenAI(
-    model=settings.DEFAULT_MODEL,
-    temperature=0.0,
+supervisor_llm = get_llm_with_fallbacks(
     api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
-    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-).with_structured_output(SupervisorDecision)
+    temperature=0.0,
+    structured_output=SupervisorDecision
+)
 
 def supervisor_node(state: AgentState) -> dict:
     sys_prompt = SystemMessage(

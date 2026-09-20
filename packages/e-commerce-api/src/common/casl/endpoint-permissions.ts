@@ -119,4 +119,5 @@ export const getPermissions: Record<Operation, PolicyRule[]> = {
   postProductAttribute: [],
   getAllRootCategories: [],
   postAiChat: [],
+  getAiChatHistory: [],
 };

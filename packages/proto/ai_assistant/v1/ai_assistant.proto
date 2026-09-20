@@ -4,6 +4,7 @@ package ai_assistant.v1;
 
 service ChatService {
   rpc Chat(ChatRequest) returns (ChatResponse);
+  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
 }
 
 message ChatRequest {
@@ -18,4 +19,20 @@ message ChatResponse {
   string data = 2;
   string session_id = 3;
   string type = 4;
+}
+
+message GetChatHistoryRequest {
+  string session_id = 1;
+  string user_id = 2;
+}
+
+message ChatMessage {
+  string id = 1;
+  string sender = 2;
+  string text = 3;
+  string data = 4;
+}
+
+message GetChatHistoryResponse {
+  repeated ChatMessage messages = 1;
 }

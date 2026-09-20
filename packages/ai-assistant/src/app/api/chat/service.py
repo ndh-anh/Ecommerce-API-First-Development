@@ -62,15 +62,13 @@ class ChatService:
         messages = result.get("messages", [])
         
         if messages and messages[-1].type == "human":
-            from langchain_openai import ChatOpenAI
+            from app.utils.llm_utils import get_llm_with_fallbacks
             from langchain_core.messages import SystemMessage
             from app.config import settings
             
-            fallback_llm = ChatOpenAI(
-                model=settings.DEFAULT_MODEL,
-                temperature=0.7,
+            fallback_llm = get_llm_with_fallbacks(
                 api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
-                base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+                temperature=0.7
             )
             fallback_response = fallback_llm.invoke([
                 SystemMessage(content="Bạn là trợ lý ảo hỗ trợ khách hàng. Hãy trả lời câu hỏi của khách hàng một cách thân thiện và tự nhiên. Nếu khách hỏi về sản phẩm, hãy hỏi lại chi tiết để tra cứu."),
@@ -101,15 +99,13 @@ class ChatService:
                     try:
                         data = json.loads(messages[i].content)
                         if data_type == "get_products" and isinstance(data, dict) and "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
-                            from langchain_openai import ChatOpenAI
+                            from app.utils.llm_utils import get_llm_with_fallbacks
                             from app.config import settings
                             import re
                             
-                            filter_llm = ChatOpenAI(
-                                model=settings.DEFAULT_MODEL,
-                                temperature=0,
+                            filter_llm = get_llm_with_fallbacks(
                                 api_key=settings.DASHSCOPE_API_KEY_AGENT_1,
-                                base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+                                temperature=0
                             )
                             user_msg = messages[last_human_idx].content
                             ai_msg = messages[-1].content if messages[-1].type == "ai" else ""
@@ -143,3 +139,50 @@ Trả về ĐÚNG 1 mảng JSON chứa các ID hợp lệ, ví dụ: ["id1", "id
             "data": data,
             "type": data_type or ""
         }
+
+    def get_chat_history(self, session_id: str, user_id: str) -> list:
+        config = {"configurable": {"thread_id": session_id, "user_id": user_id}}
+        try:
+            state_snapshot = self.agent.get_state(config)
+            messages = state_snapshot.values.get("messages", [])
+        except Exception:
+            messages = []
+            
+        history = []
+        import json
+        
+        for i, msg in enumerate(messages):
+            if msg.type == "human":
+                history.append({
+                    "id": msg.id or f"msg_{i}",
+                    "sender": "user",
+                    "text": msg.content,
+                    "data": ""
+                })
+            elif msg.type == "ai":
+                if msg.content:
+                    # Look back for the last tool message before this AI message to attach its data
+                    data_payload = ""
+                    for j in range(i - 1, -1, -1):
+                        prev_msg = messages[j]
+                        if prev_msg.type == "human":
+                            break
+                        if prev_msg.type == "tool":
+                            try:
+                                parsed = json.loads(prev_msg.content)
+                                # Only attach tool data if it looks like a dictionary with 'data'
+                                if isinstance(parsed, dict) and "data" in parsed:
+                                    data_payload = json.dumps(parsed)
+                                else:
+                                    data_payload = prev_msg.content
+                            except Exception:
+                                data_payload = prev_msg.content
+                            break
+                            
+                    history.append({
+                        "id": msg.id or f"msg_{i}",
+                        "sender": "ai",
+                        "text": msg.content,
+                        "data": data_payload
+                    })
+        return history

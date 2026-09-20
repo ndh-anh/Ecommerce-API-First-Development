@@ -76,6 +76,49 @@
         }
       }
     },
+    "/api/v1/ai/chat/history": {
+      "get": {
+        "operationId": "getAiChatHistory",
+        "summary": "Get Chat History",
+        "description": "Get chat history for the current user session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The request has succeeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Access is unauthorized.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/api/v1/uploads/presigned-url": {
       "post": {
         "operationId": "postPresignedUrl",
@@ -140,6 +183,46 @@
   },
   "components": {
     "schemas": {
+      "ChatHistoryResponse": {
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "description": "List of messages in the session"
+          }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": [
+          "id",
+          "sender",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Message ID"
+          },
+          "sender": {
+            "type": "string",
+            "description": "Sender type"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content"
+          },
+          "data": {
+            "description": "Optional data payload"
+          }
+        }
+      },
       "ChatRequest": {
         "type": "object",
         "required": [

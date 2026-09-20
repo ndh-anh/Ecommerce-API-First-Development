@@ -35,3 +35,23 @@ class ChatServicer(pb2_grpc.ChatServiceServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Failed to process chat query: {str(e)}")
             return pb2.ChatResponse()
+
+    def GetChatHistory(self, request, context):
+        session_id = request.session_id or "default_session"
+        user_id = request.user_id or "default_user"
+        
+        try:
+            history = self.chat_service.get_chat_history(session_id, user_id)
+            messages = []
+            for msg in history:
+                messages.append(pb2.ChatMessage(
+                    id=msg["id"],
+                    sender=msg["sender"],
+                    text=msg["text"],
+                    data=msg["data"]
+                ))
+            return pb2.GetChatHistoryResponse(messages=messages)
+        except Exception as e:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Failed to get chat history: {str(e)}")
+            return pb2.GetChatHistoryResponse()

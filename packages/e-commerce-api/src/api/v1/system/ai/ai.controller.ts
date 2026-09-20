@@ -5,6 +5,7 @@ import { BaseAiControllerInterface } from '@generated-controller/system/ai/base-
 import {
   PostAiChat200Response,
   PostAiChatBody,
+  GetAiChatHistory200Response,
 } from '@e-commerce/api-validation/types/system';
 import { Injectable } from '@nestjs/common';
 
@@ -31,6 +32,27 @@ export class AiController implements BaseAiControllerInterface {
       data: grpcResponse.data ? JSON.parse(grpcResponse.data) : null,
       sessionId: grpcResponse.sessionId,
       type: grpcResponse.type,
+    };
+  }
+
+  async getAiChatHistory(): Promise<GetAiChatHistory200Response> {
+    const userId = this.clsService.userId;
+    const sessionId = 'default_session'; // For now we use default session
+
+    const grpcResponse = await this.aiService.getChatHistory(
+      sessionId,
+      userId ?? '',
+    );
+
+    return {
+      messages: grpcResponse.messages
+        ? grpcResponse.messages.map((m: any) => ({
+            id: m.id,
+            sender: m.sender,
+            text: m.text,
+            data: m.data ? JSON.parse(m.data) : null,
+          }))
+        : [],
     };
   }
 }

@@ -90,7 +90,20 @@ def create_agent_graph():
     builder.add_edge("safe_order_tools", "order")
     builder.add_edge("sensitive_order_tools", "order")
     
-    checkpointer = MemorySaver()
+    # Khởi tạo Postgres Checkpointer để lưu state vĩnh viễn (giữ nguyên config mặc định của LangGraph)
+    from langgraph.checkpoint.postgres import PostgresSaver
+    from psycopg_pool import ConnectionPool
+    from app.config import settings
+    
+    pool = ConnectionPool(
+        conninfo=settings.DB_URI,
+        max_size=20,
+        kwargs={"autocommit": True, "prepare_threshold": None},
+    )
+    
+    checkpointer = PostgresSaver(pool)
+    checkpointer.setup() # Tự động tạo các bảng mặc định: checkpoints, checkpoints_writes, checkpoint_migrations
+    
     return builder.compile(checkpointer=checkpointer, interrupt_before=["sensitive_order_tools"])
 
 agent_app = create_agent_graph()

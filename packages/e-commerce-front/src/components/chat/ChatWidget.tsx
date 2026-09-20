@@ -6,19 +6,22 @@ import { useAuth } from "@/hooks/useAuth";
 import ChatIcon from "@mui/icons-material/Chat";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
-import Fab from "@mui/material/Fab";
+import {
+  Fab,
+  Box,
+  Typography,
+  IconButton,
+  Paper,
+  InputBase,
+  CircularProgress,
+} from "@mui/material";
+
 import { usePostAiChat } from "@e-commerce/api-client/endpoints/system";
-import Image from "next/image";
-import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { getGetAiChatHistorySuspenseQueryOptions } from "@e-commerce/api-client/endpoints/system";
 
-interface Message {
-  id: string;
-  sender: "user" | "ai";
-  text: string;
-  data?: any;
-}
-
-const JSON_INDENT = 2;
+import type { Message } from "./types";
+import ChatMessageItem from "./ChatMessageItem";
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,6 +45,22 @@ const ChatWidget = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const { data: historyData } = useQuery({
+    ...getGetAiChatHistorySuspenseQueryOptions(),
+    enabled: Boolean(token && isInitialized && isOpen),
+  });
+
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+
+  if (
+    historyData?.messages &&
+    historyData.messages.length > 0 &&
+    !isHistoryLoaded
+  ) {
+    setIsHistoryLoaded(true);
+    setMessages(historyData.messages as any[]);
+  }
 
   const sendMessage = async (text: string, confirm?: boolean) => {
     if (!text.trim() || chatMutation.isPending) return;
@@ -85,7 +104,7 @@ const ChatWidget = () => {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
-    
+
     const textToSend = inputValue;
     setInputValue("");
     await sendMessage(textToSend);
@@ -94,7 +113,7 @@ const ChatWidget = () => {
   if (!isInitialized) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] font-sans">
+    <Box sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999 }}>
       {!isOpen && (
         <Fab
           aria-label="chat"
@@ -114,182 +133,149 @@ const ChatWidget = () => {
       )}
 
       {isOpen && (
-        <div className="w-[350px] sm:w-[400px] h-[500px] max-h-[80vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 transition-all duration-300">
+        <Paper
+          elevation={12}
+          sx={{
+            width: { xs: 350, sm: 400 },
+            height: 500,
+            maxHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 4,
+            overflow: "hidden",
+            border: "1px solid",
+            borderColor: "grey.100",
+          }}
+        >
           {/* Header */}
-          <div className="bg-black text-white p-4 flex justify-between items-center">
-            <div className="flex items-center gap-2">
+          <Box
+            sx={{
+              bgcolor: "common.black",
+              color: "common.white",
+              p: 2,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <ChatIcon />
-              <span className="font-semibold text-lg">AI Assistant</span>
-            </div>
-            <button
+              <Typography variant="boldL">AI Assistant</Typography>
+            </Box>
+            <IconButton
+              size="small"
               onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white transition-colors"
+              sx={{
+                color: "rgba(255,255,255,0.8)",
+                "&:hover": { color: "common.white" },
+              }}
             >
               <CloseIcon />
-            </button>
-          </div>
+            </IconButton>
+          </Box>
 
           {/* Body */}
-          <div className="flex-1 bg-gray-50 overflow-y-auto p-4 space-y-4">
+          <Box sx={{ flex: 1, bgcolor: "grey.50", overflowY: "auto", p: 2 }}>
             {!token ? (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500 text-center px-4">
-                <ChatIcon sx={{ fontSize: 48, color: "#ccc", mb: 2 }} />
-                <p>Bạn phải đăng nhập để thực hiện chức năng này</p>
-              </div>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  color: "text.secondary",
+                  px: 2,
+                  textAlign: "center",
+                }}
+              >
+                <ChatIcon sx={{ fontSize: 48, color: "grey.400", mb: 2 }} />
+                <Typography variant="regularM">
+                  Bạn phải đăng nhập để thực hiện chức năng này
+                </Typography>
+              </Box>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                      msg.sender === "user"
-                        ? "bg-black text-white rounded-tr-sm"
-                        : "bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-sm"
-                    }`}
+              <>
+                {messages.map((msg) => (
+                  <ChatMessageItem
+                    key={msg.id}
+                    msg={msg}
+                    onSendMessage={sendMessage}
+                  />
+                ))}
+                {chatMutation.isPending && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "flex-start",
+                      mb: 2,
+                    }}
                   >
-                    <p className="text-sm">{msg.text}</p>
-                    {msg.sender === "ai" && msg.text.toLowerCase().includes("vui lòng xác nhận") && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => sendMessage("Xác nhận", true)}
-                          className="flex-1 bg-black text-white text-xs py-1.5 rounded hover:bg-gray-800 transition-colors"
-                        >
-                          Xác nhận
-                        </button>
-                        <button
-                          onClick={() => sendMessage("Từ chối", false)}
-                          className="flex-1 bg-gray-200 text-black text-xs py-1.5 rounded hover:bg-gray-300 transition-colors"
-                        >
-                          Từ chối
-                        </button>
-                      </div>
-                    )}
-                    {(() => {
-                      if (!msg.data) return null;
-
-                      let productList: any[] = [];
-                      if (Array.isArray(msg.data)) {
-                        productList = msg.data;
-                      } else if (
-                        msg.data.data &&
-                        Array.isArray(msg.data.data)
-                      ) {
-                        productList = msg.data.data;
-                      } else {
-                        productList = [msg.data];
-                      }
-
-                      const hasProducts = productList.some(
-                        (item) => item && item.productName,
-                      );
-
-                      if (hasProducts) {
-                        return (
-                          <div className="mt-3 flex flex-col gap-3 min-w-[200px]">
-                            {productList
-                              .filter((p) => p && p.productName)
-                              .map((product: any, idx: number) => (
-                                <div
-                                  key={idx}
-                                  className="flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm"
-                                >
-                                  <div className="relative w-full h-32 bg-gray-100">
-                                    {product.thumbnailUrl ? (
-                                      <Image
-                                        src={product.thumbnailUrl}
-                                        alt={product.productName}
-                                        fill
-                                        className="object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                                        No Image
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="p-3">
-                                    <h4
-                                      className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1"
-                                      title={product.productName}
-                                    >
-                                      {product.productName}
-                                    </h4>
-                                    <p className="text-red-600 font-bold mb-3 text-xs">
-                                      {product.price
-                                        ? new Intl.NumberFormat("vi-VN", {
-                                            style: "currency",
-                                            currency: "VND",
-                                          }).format(product.price)
-                                        : "Liên hệ"}
-                                    </p>
-                                    <div className="flex gap-2">
-                                      <Link
-                                        href={`/product/${product.slug}`}
-                                        className="flex-1 text-center bg-gray-100 text-black text-xs py-1.5 rounded hover:bg-gray-200 transition-colors"
-                                      >
-                                        Chi tiết
-                                      </Link>
-                                      <button
-                                        onClick={() => sendMessage(`Tôi muốn đặt mua sản phẩm: ${product.productName}`)}
-                                        className="flex-1 text-center bg-black text-white text-xs py-1.5 rounded hover:bg-gray-800 transition-colors"
-                                      >
-                                        Đặt hàng
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="mt-2 text-xs bg-gray-50 p-2 rounded-lg border border-gray-100 text-gray-600 overflow-x-auto">
-                          <pre className="whitespace-pre-wrap font-mono">
-                            {JSON.stringify(msg.data, null, JSON_INDENT)}
-                          </pre>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              ))
+                    <CircularProgress
+                      size={20}
+                      sx={{ color: "grey.500", ml: 2 }}
+                    />
+                  </Box>
+                )}
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
-          </div>
+          </Box>
 
           {/* Footer */}
           {token && (
-            <div className="p-3 bg-white border-t border-gray-100">
-              <form
+            <Box
+              sx={{
+                p: 1.5,
+                bgcolor: "common.white",
+                borderTop: "1px solid",
+                borderColor: "grey.100",
+              }}
+            >
+              <Box
+                component="form"
                 onSubmit={handleSend}
-                className="flex items-center gap-2 bg-gray-50 rounded-full pr-2 pl-4 py-1"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  bgcolor: "grey.50",
+                  borderRadius: 8,
+                  pr: 0.5,
+                  pl: 2,
+                  py: 0.5,
+                }}
               >
-                <input
-                  type="text"
+                <InputBase
+                  sx={{ flex: 1, typography: "regularM" }}
+                  placeholder="Nhập tin nhắn..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Nhập tin nhắn..."
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 outline-none"
                   disabled={chatMutation.isPending}
                 />
-                <button
+                <IconButton
                   type="submit"
                   disabled={!inputValue.trim() || chatMutation.isPending}
-                  className="bg-black text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                  sx={{
+                    bgcolor: "common.black",
+                    color: "common.white",
+                    width: 32,
+                    height: 32,
+                    "&:hover": { bgcolor: "grey.800" },
+                    "&.Mui-disabled": {
+                      opacity: 0.5,
+                      bgcolor: "common.black",
+                      color: "common.white",
+                    },
+                  }}
                 >
                   <SendIcon sx={{ fontSize: 16, ml: "2px" }} />
-                </button>
-              </form>
-            </div>
+                </IconButton>
+              </Box>
+            </Box>
           )}
-        </div>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 };
 
