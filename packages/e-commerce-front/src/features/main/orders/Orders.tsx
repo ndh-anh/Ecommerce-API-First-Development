@@ -149,7 +149,7 @@ const OrdersLoader = ({ userId }: { userId: string }) => {
             }}
           >
             <Grid container spacing={3} alignItems="center">
-              <Grid item size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="boldM" fontWeight="bold">
                   Mã đơn: #{order.orderId.split("-")[0].toUpperCase()}
                 </Typography>
@@ -158,14 +158,20 @@ const OrdersLoader = ({ userId }: { userId: string }) => {
                   {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                 </Typography>
               </Grid>
-              <Grid item xs={12} md={3} sx={{ textAlign: { md: "center" } }}>
+              <Grid
+                size={{ xs: 12, md: 3 }}
+                sx={{ textAlign: { md: "center" } }}
+              >
                 <Chip
                   label={statusConfig.label}
                   color={statusConfig.color}
                   size="small"
                 />
               </Grid>
-              <Grid item xs={12} md={3} sx={{ textAlign: { md: "right" } }}>
+              <Grid
+                size={{ xs: 12, md: 3 }}
+                sx={{ textAlign: { md: "right" } }}
+              >
                 <Typography
                   variant="boldL"
                   color="error.main"
